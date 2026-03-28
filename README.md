@@ -1,4 +1,4 @@
-## Predicting Medical Insurance Costs with Bootstrap Regression
+## BMI, Smoking, and Insurance Charges: A Bootstrap Regression Analysis
 
 ### Overview
 Using sample data of insurance charges for individuals of various sex, region, smoking status, 
