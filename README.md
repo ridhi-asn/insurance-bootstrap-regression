@@ -7,7 +7,7 @@ charges, as well as the claim that smoking status impacts this relationship sign
 bootstrap regression analysis.
 
 ### Results
-BMI has a statistically significant positive relationship with charges. 
+BMI has a statistically significant positive relationship with insurance charges. 
 The effect of BMI on insurance charges is stronger for smokers than non-smokers.
 
 ### Full Analysis @
