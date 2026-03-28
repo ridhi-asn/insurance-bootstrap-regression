@@ -3,7 +3,8 @@
 ### Overview
 Using sample data of insurance charges for individuals of various sex, region, smoking status, 
 and bmi, this project aims to test the claim there is a relationship between bmi and insurance 
-charges, as well as the claim that smoking status impacts this relationship significantly.
+charges, as well as the claim that smoking status impacts this relationship significantly, using 
+bootstrap regression analysis.
 
 ### Results
 BMI has a statistically significant positive relationship with charges. 
