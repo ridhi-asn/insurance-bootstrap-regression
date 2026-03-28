@@ -1,0 +1,151 @@
+---
+title: "BMI versus Insurance Charge in R"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+setwd('/Users/ridhiasnani/Downloads')
+insurance_dataset <- read_csv("Medical_Cost.csv")
+head(insurance_dataset)
+```
+
+### Exploratory Data Analysis:
+
+To explore the relationship between BMI and insurance charges, we can use a scatter plot to visualize the two variables.
+
+```{r}
+insurance_dataset %>% 
+  ggplot(aes(bmi, charges)) + 
+  geom_point(alpha = 0.4, color = "steelblue") +
+  labs(
+    title = "Insurance Charge by BMI Scatterplot",
+    x = "BMI",
+    y = "Charges ($)"
+  ) +
+  theme_minimal()
+```
+
+Ihe relationship observed generally shows an upward positive trend. Since there are two clusters of points in the scatterplot, there could be another factor besides BMI impacting a difference in insurance charge for individuals.
+
+We can test these factors by grouping the individuals and comparing their mean average charges. View tables below.
+
+```{r}
+insurance_dataset %>% group_by(smoker) %>% summarise(average_charges = mean(charges))
+insurance_dataset %>% group_by(region) %>% summarise(average_charges = mean(charges))
+insurance_dataset %>% group_by(sex) %>% summarise(average_charges = mean(charges))
+```
+Viewing the tables above, the smoking factor displays the most significant difference in average insurance charges, compared to other factors. 
+
+### Null and Alternative Hypothesis
+
+As a result, we can set the following null and alternative hypotheses to test:
+
+H_0: The slope of the true line between BMI and Charges is 0; there is no linear relationship between the two variables. The slope of true line is the same for smokers versus non-smokers.
+
+H_A: The slope of the true line between BMI and Charges is not 0; there is a linear relationship between the two variables. The slope of the true line is different between smokers and non-smokers.
+
+Since we are only given one sample data, we can find the slopes of multiple boostrapped samples and the resulting 95% confidence interval for the population slope.
+
+### Bootstrapping the Dataset
+
+```{r}
+bootstrap_function <- function(dataset,x,y,seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  n = nrow(dataset)
+  indices = sample(1:n, size = n, replace = TRUE)
+  bootstrap_sample = dataset[indices,]
+  return(bootstrap_sample)
+}
+slope <- function(x,y) {
+  cor(x,y)*(sd(y)/sd(x))
+}
+#example of boostrapped sample
+head(bootstrap_function(insurance_dataset,insurance_dataset$bmi,insurance$charges))
+
+all_slopes <- function(dataset, x, y, repetitions, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  sapply(1:repetitions, function(i) {
+    bootstrap_sample <- bootstrap_function(dataset,x,y)
+    slope(bootstrap_sample$bmi, bootstrap_sample$charges)
+  })
+}
+slopes_1000 <- all_slopes(insurance_dataset, insurance_dataset$bmi, insurance_dataset$charges,1000)
+
+data.frame(slopes_1000) %>% 
+  ggplot(aes(slopes_1000)) +
+  geom_histogram(fill = "steelblue", color = "white", bins = 20) +
+  geom_vline(xintercept = quantile(slopes_1000, 0.025), linetype = "dashed", color = "tomato") +
+  geom_vline(xintercept = quantile(slopes_1000, 0.975),
+             linetype = "dashed", color = "tomato") +
+  labs(
+    title = "Distribution of 1000 Bootstrap Slopes",
+    x = "Slope (Charge Over BMI)",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+quantile(slopes_1000, 0.025)
+quantile(slopes_1000, 0.975)
+  
+```
+### Results
+
+Above is the distribution of slopes of charge over bmi for 1000 boostrapped samples.
+It can be said with 95% confidence that true slope lies between the given 2.5th 
+and 97.5th percentiles of the distribution, shown above.
+
+Since 0 does not fall in the 95% confidence interval, there is enough evidence to reject the null hypothesis that there is no linear relationship between BMI and charges, using a p-value of 0.05.
+
+### Smokers vs. Non-smokers: Bootstrapping
+
+Next, we can use the same approach to test the claim that smokers and non-smokers would have a different value in true slope. We start by finding separate bootstrap samples for smokers versus non-smokers, followed by their resulting 95% CI's for true slope.
+
+```{r}
+smoker_data <- insurance_dataset %>% filter(smoker == "yes")
+nonsmoker_data <- insurance_dataset %>% filter(smoker == "no")
+
+smoker_slopes <- all_slopes(smoker_data,smoker_data$bmi,smoker_data$charges, 1000)
+data.frame(smoker_slopes) %>%
+  ggplot(aes(smoker_slopes)) +
+  geom_histogram(fill = "tomato", color = "white", bins = 20) +
+  geom_vline(xintercept = quantile(smoker_slopes, 0.025),
+             linetype = "dashed", color = "steelblue") +
+  geom_vline(xintercept = quantile(smoker_slopes, 0.975),
+             linetype = "dashed", color = "steelblue") +
+  labs(title = "Distribution of 1000 Bootstrap Slopes of Smokers",
+       x = "Slope (Charges over BMI)", y = "Frequency") +
+  theme_minimal()
+quantile(smoker_slopes, 0.025)
+quantile(smoker_slopes, 0.975)
+
+nonsmoker_slopes <- all_slopes(nonsmoker_data, nonsmoker_data$bmi, nonsmoker_data$charges, 1000)
+data.frame(nonsmoker_slopes) %>%
+  ggplot(aes(nonsmoker_slopes)) +
+  geom_histogram(fill = "tomato", color = "white", bins = 20) +
+  geom_vline(xintercept = quantile(nonsmoker_slopes, 0.025),
+             linetype = "dashed", color = "steelblue") +
+  geom_vline(xintercept = quantile(nonsmoker_slopes, 0.975),
+             linetype = "dashed", color = "steelblue") +
+  labs(title = "Distribution of 1000 Bootstrap Slopes of Nonsmokers",
+       x = "Slope (Charges over BMI)", y = "Frequency") +
+  theme_minimal()
+quantile(nonsmoker_slopes, 0.025)
+quantile(nonsmoker_slopes, 0.975)
+```
+
+### Results
+
+The 95% CI for the true slope of smokers (Charge over BMI) is vastly different from that of nonsmokers, showing no overlap. These results provide strong evidence to reject H_0, which suggests the true slope is the same for both nonsmokers and smokers. 
+
+## Summary
+BMI has a statistically significant positive relationship with insurance charges. Morover, smoking is a critical confounding variable, smokers are expected to pay dramatically higher charges regardless of BMI, and the effect of BMI on charges 
+differs between smokers and non-smokers.
+
+Future work could incorporate additional variables such as age and sex into a multiple regression model for more accurate predictions.
+
+
+
+
+
+
